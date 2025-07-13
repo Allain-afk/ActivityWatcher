@@ -149,4 +149,8 @@ simple_tests.py
 # Temporary files
 *.tmp
 *.bak
-*.orig 
+*.orig
+
+# Release artifacts
+*.zip
+ActivityWatcher-v* 

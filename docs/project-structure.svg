@@ -1,1 +1,137 @@
- 
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="500" xmlns="http://www.w3.org/2000/svg">
+  
+  <!-- Title -->
+  <text x="400" y="30" class="title" text-anchor="middle">ActivityWatcher Project Structure</text>
+  
+  <!-- Root Directory -->
+  <rect x="50" y="60" width="700" height="520" fill="#ecf0f1" stroke="#bdc3c7" stroke-width="2" rx="5"/>
+  <text x="70" y="85" class="subtitle">📁 ActivityWatcher/</text>
+  
+  <!-- src/ Directory -->
+  <rect x="80" y="100" width="200" height="320" class="folder" rx="3"/>
+  <text x="90" y="125" class="text" fill="white">📁 src/</text>
+  
+  <!-- src files -->
+  <rect x="90" y="135" width="180" height="20" class="python" rx="2"/>
+  <text x="95" y="148" class="text" fill="white">🐍 __init__.py</text>
+  
+  <rect x="90" y="160" width="180" height="20" class="python" rx="2"/>
+  <text x="95" y="173" class="text" fill="white">🐍 main.py</text>
+  
+  <rect x="90" y="185" width="180" height="20" class="python" rx="2"/>
+  <text x="95" y="198" class="text" fill="white">🐍 system_tray.py</text>
+  
+  <rect x="90" y="210" width="180" height="20" class="python" rx="2"/>
+  <text x="95" y="223" class="text" fill="white">🐍 window_tracker.py</text>
+  
+  <rect x="90" y="235" width="180" height="20" class="python" rx="2"/>
+  <text x="95" y="248" class="text" fill="white">🐍 web_dashboard.py</text>
+  
+  <rect x="90" y="260" width="180" height="20" class="python" rx="2"/>
+  <text x="95" y="273" class="text" fill="white">🐍 database.py</text>
+  
+  <rect x="90" y="285" width="180" height="20" class="python" rx="2"/>
+  <text x="95" y="298" class="text" fill="white">🐍 config.py</text>
+  
+  <rect x="90" y="310" width="180" height="20" class="python" rx="2"/>
+  <text x="95" y="323" class="text" fill="white">🐍 reports.py</text>
+  
+  <rect x="90" y="335" width="180" height="20" class="folder" rx="2"/>
+  <text x="95" y="348" class="text" fill="white">📁 templates/</text>
+  
+  <rect x="100" y="360" width="160" height="20" class="template" rx="2"/>
+  <text x="105" y="373" class="text" fill="white">🌐 dashboard.html</text>
+  
+  <!-- tests/ Directory -->
+  <rect x="300" y="100" width="200" height="240" class="test" rx="3"/>
+  <text x="310" y="125" class="text" fill="white">📁 tests/</text>
+  
+  <rect x="310" y="135" width="180" height="20" class="python" rx="2"/>
+  <text x="315" y="148" class="text" fill="white">🐍 __init__.py</text>
+  
+  <rect x="310" y="160" width="180" height="20" class="python" rx="2"/>
+  <text x="315" y="173" class="text" fill="white">🐍 test_api.py</text>
+  
+  <rect x="310" y="185" width="180" height="20" class="python" rx="2"/>
+  <text x="315" y="198" class="text" fill="white">🐍 test_application.py</text>
+  
+  <rect x="310" y="210" width="180" height="20" class="python" rx="2"/>
+  <text x="315" y="223" class="text" fill="white">🐍 test_tracking.py</text>
+  
+  <rect x="310" y="235" width="180" height="20" class="python" rx="2"/>
+  <text x="315" y="248" class="text" fill="white">🐍 simple_tests.py</text>
+  
+  <rect x="310" y="260" width="180" height="20" class="python" rx="2"/>
+  <text x="315" y="273" class="text" fill="white">🐍 quick_api_test.py</text>
+  
+  <rect x="310" y="285" width="180" height="20" class="python" rx="2"/>
+  <text x="315" y="298" class="text" fill="white">🐍 debug_db.py</text>
+  
+  <!-- Configuration Files -->
+  <rect x="520" y="100" width="200" height="180" class="config" rx="3"/>
+  <text x="530" y="125" class="text" fill="white">📁 Configuration</text>
+  
+  <rect x="530" y="135" width="180" height="20" class="file" rx="2"/>
+  <text x="535" y="148" class="text">📄 README.md</text>
+  
+  <rect x="530" y="160" width="180" height="20" class="file" rx="2"/>
+  <text x="535" y="173" class="text">📄 requirements.txt</text>
+  
+  <rect x="530" y="185" width="180" height="20" class="file" rx="2"/>
+  <text x="535" y="198" class="text">📄 .gitignore</text>
+  
+  <rect x="530" y="210" width="180" height="20" class="file" rx="2"/>
+  <text x="535" y="223" class="text">📄 LICENSE</text>
+  
+  <rect x="530" y="235" width="180" height="20" class="file" rx="2"/>
+  <text x="535" y="248" class="text">🖼️ icon.ico</text>
+  
+  <!-- Build Files -->
+  <rect x="300" y="360" width="200" height="120" class="folder" rx="3"/>
+  <text x="310" y="385" class="text" fill="white">📁 Build Files</text>
+  
+  <rect x="310" y="395" width="180" height="20" class="python" rx="2"/>
+  <text x="315" y="408" class="text" fill="white">🐍 build.py</text>
+  
+  <rect x="310" y="420" width="180" height="20" class="python" rx="2"/>
+  <text x="315" y="433" class="text" fill="white">🐍 run.py</text>
+  
+  <rect x="310" y="445" width="180" height="20" class="file" rx="2"/>
+  <text x="315" y="458" class="text">📄 *.spec</text>
+  
+  <!-- Legend -->
+  <rect x="520" y="300" width="200" height="150" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1" rx="3"/>
+  <text x="530" y="320" class="subtitle">Legend</text>
+  
+  <rect x="530" y="330" width="15" height="15" class="python" rx="2"/>
+  <text x="550" y="342" class="text">Python Files</text>
+  
+  <rect x="530" y="350" width="15" height="15" class="folder" rx="2"/>
+  <text x="550" y="362" class="text">Source Directory</text>
+  
+  <rect x="530" y="370" width="15" height="15" class="test" rx="2"/>
+  <text x="550" y="382" class="text">Test Directory</text>
+  
+  <rect x="530" y="390" width="15" height="15" class="config" rx="2"/>
+  <text x="550" y="402" class="text">Configuration</text>
+  
+  <rect x="530" y="410" width="15" height="15" class="template" rx="2"/>
+  <text x="550" y="422" class="text">Templates</text>
+  
+  <!-- Data Flow Arrows -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666"/>
+    </marker>
+  </defs>
+  
+  <line x1="180" y1="400" x2="300" y2="400" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="200" y="395" class="text" fill="#666">runs</text>
+  
+  <line x1="280" y1="200" x2="300" y2="200" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <text x="285" y="195" class="text" fill="#666">tests</text>
+  
+  <!-- Footer -->
+  <text x="400" y="570" class="text" text-anchor="middle" fill="#7f8c8d">Professional Python project structure with proper separation of concerns</text>
+</svg> 

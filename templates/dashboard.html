@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Watcher Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .header h1 {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .status-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.active {
+            background: linear-gradient(45deg, #27ae60, #229954);
+            box-shadow: 0 0 20px rgba(39, 174, 96, 0.5);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        .status-text {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .session-time-display {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .session-time-label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        
+        .session-time {
+            font-size: 2em;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            animation: sessionPulse 2s ease-in-out infinite;
+            transition: color 0.3s ease;
+        }
+        
+        @keyframes sessionPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        
+        .card h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-icon {
+            font-size: 1.2em;
+            color: #667eea;
+        }
+        
+        .time-display {
+            font-size: 3em;
+            font-weight: 700;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            margin-bottom: 20px;
+            animation: countUp 0.5s ease-out;
+        }
+        
+        @keyframes countUp {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(236, 240, 241, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-item:hover {
+            background: rgba(102, 126, 234, 0.05);
+            padding-left: 10px;
+            border-radius: 8px;
+        }
+        
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-value {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(45deg, #27ae60, #229954);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+        
+        .loading::before {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .current-window {
+            background: linear-gradient(45deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 200px;
+            margin-top: 20px;
+        }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .metric-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        
+        .app-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .app-item:hover {
+            background: rgba(255, 255, 255, 0.8);
+            transform: translateX(5px);
+        }
+        
+        .app-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .app-info {
+            flex: 1;
+        }
+        
+        .app-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .app-time {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: rgba(39, 174, 96, 0.9);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transform: translateX(300px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .btn {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-chart-line"></i> Activity Watcher</h1>
+            <div class="status">
+                <div class="status-indicator" id="status-indicator"></div>
+                <span class="status-text" id="status-text">Loading...</span>
+            </div>
+            <div class="session-time-display">
+                <div class="session-time-label">Current Session</div>
+                <div class="session-time" id="session-time">00:00:00</div>
+            </div>
+            <div class="current-window" id="current-window" style="display: none;"></div>
+        </div>
+        
+        <div class="grid">
+            <div class="card">
+                <h2><i class="fas fa-calendar-day card-icon"></i>Today's Activity</h2>
+                <div class="time-display" id="today-time">Loading...</div>
+                <div class="metric-card">
+                    <div class="metric-value" id="today-apps-count">0</div>
+                    <div class="metric-label">Applications Used</div>
+                </div>
+                <div id="today-apps"></div>
+            </div>
+            
+            <div class="card">
+                <h2><i class="fas fa-trophy card-icon"></i>Top Applications</h2>
+                <div id="top-apps">Loading...</div>
+            </div>
+            
+            <div class="card">
+                <h2><i class="fas fa-chart-bar card-icon"></i>Weekly Overview</h2>
+                <div id="weekly-stats">Loading...</div>
+                <div class="chart-container">
+                    <canvas id="weeklyChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-primary" onclick="toggleTracking()">
+                <i class="fas fa-play-circle"></i>
+                <span id="toggle-text">Toggle Tracking</span>
+            </button>
+            <button class="btn btn-success" onclick="refreshData()">
+                <i class="fas fa-sync-alt"></i>
+                Refresh Data
+            </button>
+            <button class="btn btn-warning" onclick="showSettings()">
+                <i class="fas fa-cog"></i>
+                Settings
+            </button>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        let trackingStatus = false;
+        let weeklyChart = null;
+        
+        function formatTime(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else if (minutes > 0) {
+                return `${minutes}m`;
+            } else {
+                return `${seconds}s`;
+            }
+        }
+        
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        function createProgressBar(percentage) {
+            return `<div class="progress-bar"><div class="progress-fill" style="width: ${percentage}%"></div></div>`;
+        }
+        
+        function updateStatus() {
+            fetch('/api/tracking/status')
+                .then(response => response.json())
+                .then(data => {
+                    trackingStatus = data.tracking;
+                    const indicator = document.getElementById('status-indicator');
+                    const statusText = document.getElementById('status-text');
+                    const currentWindow = document.getElementById('current-window');
+                    const toggleText = document.getElementById('toggle-text');
+                    
+                    if (data.tracking) {
+                        indicator.classList.add('active');
+                        statusText.textContent = 'Tracking Active';
+                        toggleText.textContent = 'Pause Tracking';
+                        
+                        if (data.current_window) {
+                            const [appName, windowTitle] = data.current_window;
+                            currentWindow.innerHTML = `
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <i class="fas fa-desktop" style="color: #667eea;"></i>
+                                    <div>
+                                        <strong>Currently Active:</strong><br>
+                                        <span style="color: #667eea;">${appName}</span> - ${windowTitle}
+                                    </div>
+                                </div>
+                            `;
+                            currentWindow.style.display = 'block';
+                        }
+                    } else {
+                        indicator.classList.remove('active');
+                        statusText.textContent = 'Tracking Paused';
+                        toggleText.textContent = 'Resume Tracking';
+                        currentWindow.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating status:', error);
+                });
+        }
+        
+        function updateSessionTime() {
+            fetch('/api/tracking/session-time')
+                .then(response => response.json())
+                .then(data => {
+                    const sessionTimeElement = document.getElementById('session-time');
+                    if (trackingStatus) {
+                        sessionTimeElement.textContent = data.formatted;
+                        sessionTimeElement.style.color = '#e74c3c';
+                    } else {
+                        sessionTimeElement.textContent = 'Paused';
+                        sessionTimeElement.style.color = '#7f8c8d';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating session time:', error);
+                    document.getElementById('session-time').textContent = 'Error';
+                });
+        }
+        
+        function loadTodayStats() {
+            fetch('/api/stats/today')
+                .then(response => response.json())
+                .then(data => {
+                    const timeDisplay = document.getElementById('today-time');
+                    const appsCount = document.getElementById('today-apps-count');
+                    const appsDiv = document.getElementById('today-apps');
+                    
+                    timeDisplay.textContent = formatTime(data.total_time || 0);
+                    
+                    if (data.app_breakdown && data.app_breakdown.length > 0) {
+                        appsCount.textContent = data.app_breakdown.length;
+                        
+                        const maxTime = Math.max(...data.app_breakdown.map(app => app.duration));
+                        
+                        appsDiv.innerHTML = data.app_breakdown.slice(0, 5).map(app => {
+                            const percentage = maxTime > 0 ? (app.duration / maxTime) * 100 : 0;
+                            return `
+                                <div class="app-item">
+                                    <div class="app-icon">${app.app_name.charAt(0).toUpperCase()}</div>
+                                    <div class="app-info">
+                                        <div class="app-name">${app.app_name}</div>
+                                        <div class="app-time">${formatTime(app.duration)}</div>
+                                        ${createProgressBar(percentage)}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    } else {
+                        appsCount.textContent = '0';
+                        appsDiv.innerHTML = '<div class="loading">No activity tracked today</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading today stats:', error);
+                    document.getElementById('today-time').textContent = 'Error';
+                });
+        }
+        
+        function loadTopApps() {
+            fetch('/api/apps/top?days=7&limit=8')
+                .then(response => response.json())
+                .then(data => {
+                    const appsDiv = document.getElementById('top-apps');
+                    if (data.length > 0) {
+                        const maxTime = Math.max(...data.map(app => app.total_duration));
+                        
+                        appsDiv.innerHTML = data.map(app => {
+                            const percentage = maxTime > 0 ? (app.total_duration / maxTime) * 100 : 0;
+                            return `
+                                <div class="app-item">
+                                    <div class="app-icon">${app.app_name.charAt(0).toUpperCase()}</div>
+                                    <div class="app-info">
+                                        <div class="app-name">${app.app_name}</div>
+                                        <div class="app-time">${formatTime(app.total_duration)}</div>
+                                        ${createProgressBar(percentage)}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    } else {
+                        appsDiv.innerHTML = '<div class="loading">No data available</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading top apps:', error);
+                });
+        }
+        
+        function loadWeeklyStats() {
+            fetch('/api/stats/weekly')
+                .then(response => response.json())
+                .then(data => {
+                    const statsDiv = document.getElementById('weekly-stats');
+                    if (data.length > 0) {
+                        const totalWeekTime = data.reduce((sum, day) => sum + (day.total_time || 0), 0);
+                        const avgDailyTime = Math.round(totalWeekTime / 7);
+                        
+                        statsDiv.innerHTML = `
+                            <div class="metric-card">
+                                <div class="metric-value">${formatTime(totalWeekTime)}</div>
+                                <div class="metric-label">Total Week Time</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value">${formatTime(avgDailyTime)}</div>
+                                <div class="metric-label">Average Daily</div>
+                            </div>
+                        `;
+                        
+                        // Create weekly chart
+                        createWeeklyChart(data);
+                    } else {
+                        statsDiv.innerHTML = '<div class="loading">No data available</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading weekly stats:', error);
+                });
+        }
+        
+        function createWeeklyChart(data) {
+            const ctx = document.getElementById('weeklyChart').getContext('2d');
+            
+            if (weeklyChart) {
+                weeklyChart.destroy();
+            }
+            
+            const labels = data.map(day => {
+                const date = new Date(day.date);
+                return date.toLocaleDateString('en-US', { weekday: 'short' });
+            });
+            
+            const times = data.map(day => day.total_time ? day.total_time / 3600 : 0);
+            
+            weeklyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Hours',
+                        data: times,
+                        backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: '#7f8c8d'
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#7f8c8d'
+                            },
+                            grid: {
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function toggleTracking() {
+            fetch('/api/tracking/toggle', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showNotification('Error: ' + data.error, 'error');
+                    } else {
+                        showNotification(data.message);
+                        updateStatus();
+                        setTimeout(loadTodayStats, 1000);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error toggling tracking:', error);
+                    showNotification('Error toggling tracking', 'error');
+                });
+        }
+        
+        function refreshData() {
+            showNotification('Refreshing data...');
+            updateStatus();
+            updateSessionTime();
+            loadTodayStats();
+            loadTopApps();
+            loadWeeklyStats();
+        }
+        
+        function showSettings() {
+            // Create modal overlay
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            `;
+            
+            // Create modal content
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                background: white;
+                border-radius: 15px;
+                padding: 30px;
+                max-width: 500px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            `;
+            
+            modal.innerHTML = `
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h2 style="color: #2c3e50; margin-bottom: 10px;">
+                        <i class="fas fa-cog"></i> Settings
+                    </h2>
+                    <p style="color: #7f8c8d;">Manage your Activity Watcher settings</p>
+                </div>
+                
+                <div style="margin-bottom: 30px;">
+                    <h3 style="color: #2c3e50; margin-bottom: 15px; font-size: 1.1em;">
+                        <i class="fas fa-database"></i> Data Management
+                    </h3>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 15px;">
+                        <p style="color: #6c757d; margin-bottom: 15px;">
+                            Reset all tracked data including activity history, application sessions, and daily summaries.
+                        </p>
+                        <button id="resetDataBtn" style="
+                            background: linear-gradient(45deg, #e74c3c, #c0392b);
+                            color: white;
+                            border: none;
+                            padding: 12px 25px;
+                            border-radius: 8px;
+                            font-size: 14px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                            width: 100%;
+                        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <i class="fas fa-exclamation-triangle"></i> Reset All Data
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 30px;">
+                    <button id="closeSettingsBtn" style="
+                        background: linear-gradient(45deg, #667eea, #764ba2);
+                        color: white;
+                        border: none;
+                        padding: 12px 30px;
+                        border-radius: 8px;
+                        font-size: 16px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                    " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                        Close
+                    </button>
+                </div>
+            `;
+            
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            
+            // Add event listeners
+            document.getElementById('resetDataBtn').addEventListener('click', function() {
+                if (confirm('Are you sure you want to reset all data?\\n\\nThis will permanently delete:\\n• All activity history\\n• All application sessions\\n• All daily summaries\\n\\nThis action cannot be undone!')) {
+                    resetAllData();
+                }
+            });
+            
+            document.getElementById('closeSettingsBtn').addEventListener('click', function() {
+                document.body.removeChild(overlay);
+            });
+            
+            // Close on overlay click
+            overlay.addEventListener('click', function(e) {
+                if (e.target === overlay) {
+                    document.body.removeChild(overlay);
+                }
+            });
+        }
+        
+        function resetAllData() {
+            fetch('/api/data/reset', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showNotification('Error: ' + data.error, 'error');
+                    } else {
+                        showNotification('All data has been reset successfully!', 'success');
+                        // Close any open modals
+                        const overlay = document.querySelector('[style*="position: fixed"]');
+                        if (overlay) {
+                            document.body.removeChild(overlay);
+                        }
+                        // Refresh the dashboard
+                        setTimeout(refreshData, 1000);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error resetting data:', error);
+                    showNotification('Error resetting data', 'error');
+                });
+        }
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshData();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(refreshData, 30000);
+            
+            // Update session time every second
+            setInterval(updateSessionTime, 1000);
+        });
+    </script>
+</body>
+</html>

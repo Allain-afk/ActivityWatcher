@@ -139,6 +139,12 @@ config.json
 # Local user data directory
 .local_activity_watcher/
 
+# Test and debug files
+test_*.py
+*_test.py
+debug_*.py
+simple_tests.py
+
 # Temporary files
 *.tmp
 *.bak

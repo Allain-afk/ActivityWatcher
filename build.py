@@ -75,11 +75,11 @@ elif platform.system() == "Linux":
     ])
 
 a = Analysis(
-    ['main.py'],
+    ['src/main.py'],
     pathex=[],
     binaries=[],
     datas=[
-        ('templates', 'templates'),
+        ('src/templates', 'templates'),
     ],
     hiddenimports=hidden_imports,
     hookspath=[],

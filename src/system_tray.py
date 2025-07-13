@@ -11,9 +11,9 @@ import pystray
 from pystray import MenuItem, Menu
 import logging
 
-from config import config
-from window_tracker import activity_tracker
-from database import db
+from .config import config
+from .window_tracker import activity_tracker
+from .database import db
 
 logger = logging.getLogger(__name__)
 

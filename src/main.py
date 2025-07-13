@@ -15,12 +15,22 @@ from pathlib import Path
 # Add the current directory to the Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from config import config
-from database import db
-from window_tracker import activity_tracker
-from system_tray import SystemTrayApp
-from web_dashboard import create_app
-from reports import report_generator
+try:
+    # Try relative imports first (when used as a package)
+    from .config import config
+    from .database import db
+    from .window_tracker import activity_tracker
+    from .system_tray import SystemTrayApp
+    from .web_dashboard import create_app
+    from .reports import report_generator
+except ImportError:
+    # Fall back to absolute imports (when run directly)
+    from config import config
+    from database import db
+    from window_tracker import activity_tracker
+    from system_tray import SystemTrayApp
+    from web_dashboard import create_app
+    from reports import report_generator
 
 def setup_logging():
     """Setup application logging."""

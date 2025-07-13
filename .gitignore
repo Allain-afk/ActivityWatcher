@@ -140,6 +140,7 @@ config.json
 .local_activity_watcher/
 
 # Test and debug files
+tests/
 test_*.py
 *_test.py
 debug_*.py

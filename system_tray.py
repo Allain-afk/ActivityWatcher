@@ -195,11 +195,8 @@ class SystemTrayApp:
         else:
             message = f"Status: {status}\nSession Time: {session_time}\nNo active window detected"
         
-        # Show message box
-        root = tk.Tk()
-        root.withdraw()  # Hide the main window
-        messagebox.showinfo("Activity Tracker Status", message)
-        root.destroy()
+        # Show message box with proper window management
+        self._show_message_dialog("Activity Tracker Status", message)
     
     def open_dashboard(self, icon, item):
         """Open the web dashboard."""
@@ -236,118 +233,115 @@ class SystemTrayApp:
             else:
                 message += "No applications tracked today"
             
-            # Show message box
-            root = tk.Tk()
-            root.withdraw()  # Hide the main window
-            messagebox.showinfo("Activity Statistics", message)
-            root.destroy()
+            # Show message box with proper window management
+            self._show_message_dialog("Activity Statistics", message)
             
         except Exception as e:
             logger.error(f"Error showing stats: {e}")
-            root = tk.Tk()
-            root.withdraw()
-            messagebox.showerror("Error", f"Failed to load statistics: {e}")
-            root.destroy()
+            self._show_message_dialog("Error", f"Failed to load statistics: {e}", is_error=True)
     
     def open_settings(self, icon, item):
         """Open settings dialog."""
         try:
-            root = tk.Tk()
-            root.withdraw()
-            root.attributes('-topmost', True)
-            
-            # Create settings window
-            settings_window = tk.Toplevel(root)
-            settings_window.title("Settings")
-            settings_window.geometry("400x300")
-            settings_window.resizable(False, False)
-            settings_window.attributes('-topmost', True)
-            
-            # Center the window
-            settings_window.update_idletasks()
-            x = (settings_window.winfo_screenwidth() // 2) - (settings_window.winfo_width() // 2)
-            y = (settings_window.winfo_screenheight() // 2) - (settings_window.winfo_height() // 2)
-            settings_window.geometry(f"+{x}+{y}")
-            
-            # Create settings content
-            title_label = tk.Label(settings_window, text="Local Activity Watcher Settings", font=("Arial", 14, "bold"))
-            title_label.pack(pady=10)
-            
-            # Tracking settings
-            tracking_frame = tk.Frame(settings_window)
-            tracking_frame.pack(pady=10, padx=20, fill='x')
-            
-            tracking_label = tk.Label(tracking_frame, text="Tracking Settings", font=("Arial", 12, "bold"))
-            tracking_label.pack(anchor='w')
-            
-            interval_frame = tk.Frame(tracking_frame)
-            interval_frame.pack(fill='x', pady=5)
-            
-            tk.Label(interval_frame, text="Tracking Interval (seconds):").pack(side='left')
-            interval_var = tk.StringVar(value=str(config.get('tracking_interval', 5)))
-            interval_spinbox = tk.Spinbox(interval_frame, from_=1, to=60, textvariable=interval_var, width=10)
-            interval_spinbox.pack(side='right')
-            
-            # Data management
-            data_frame = tk.Frame(settings_window)
-            data_frame.pack(pady=20, padx=20, fill='x')
-            
-            data_label = tk.Label(data_frame, text="Data Management", font=("Arial", 12, "bold"))
-            data_label.pack(anchor='w')
-            
-            # Reset data button
-            reset_button = tk.Button(data_frame, text="Reset All Data", 
-                                   command=lambda: self.reset_data_confirm(settings_window),
-                                   bg='#ff6b6b', fg='white', font=("Arial", 10, "bold"))
-            reset_button.pack(pady=10)
-            
-            # Buttons
-            button_frame = tk.Frame(settings_window)
-            button_frame.pack(pady=20)
-            
-            def save_settings():
-                try:
-                    config.set('tracking_interval', int(interval_var.get()))
-                    messagebox.showinfo("Settings", "Settings saved successfully!")
-                    settings_window.destroy()
+            # Create settings window in a separate thread
+            def create_settings_window():
+                root = tk.Tk()
+                root.title("Settings")
+                root.geometry("400x350")
+                root.resizable(False, False)
+                
+                # Center the window
+                root.update_idletasks()
+                x = (root.winfo_screenwidth() // 2) - (400 // 2)
+                y = (root.winfo_screenheight() // 2) - (350 // 2)
+                root.geometry(f"400x350+{x}+{y}")
+                
+                # Make window stay on top
+                root.attributes('-topmost', True)
+                root.focus_force()
+                
+                # Create settings content
+                title_label = tk.Label(root, text="Local Activity Watcher Settings", font=("Arial", 14, "bold"))
+                title_label.pack(pady=10)
+                
+                # Tracking settings
+                tracking_frame = tk.Frame(root)
+                tracking_frame.pack(pady=10, padx=20, fill='x')
+                
+                tracking_label = tk.Label(tracking_frame, text="Tracking Settings", font=("Arial", 12, "bold"))
+                tracking_label.pack(anchor='w')
+                
+                interval_frame = tk.Frame(tracking_frame)
+                interval_frame.pack(fill='x', pady=5)
+                
+                tk.Label(interval_frame, text="Tracking Interval (seconds):").pack(side='left')
+                interval_var = tk.StringVar(value=str(config.get('tracking_interval', 5)))
+                interval_spinbox = tk.Spinbox(interval_frame, from_=1, to=60, textvariable=interval_var, width=10)
+                interval_spinbox.pack(side='right')
+                
+                # Data management
+                data_frame = tk.Frame(root)
+                data_frame.pack(pady=20, padx=20, fill='x')
+                
+                data_label = tk.Label(data_frame, text="Data Management", font=("Arial", 12, "bold"))
+                data_label.pack(anchor='w')
+                
+                # Reset data button
+                reset_button = tk.Button(data_frame, text="Reset All Data", 
+                                       command=lambda: self.reset_data_confirm(root),
+                                       bg='#ff6b6b', fg='white', font=("Arial", 10, "bold"))
+                reset_button.pack(pady=10)
+                
+                # Buttons
+                button_frame = tk.Frame(root)
+                button_frame.pack(pady=20)
+                
+                def save_settings():
+                    try:
+                        config.set('tracking_interval', int(interval_var.get()))
+                        messagebox.showinfo("Settings", "Settings saved successfully!")
+                        root.destroy()
+                    except Exception as e:
+                        messagebox.showerror("Error", f"Failed to save settings: {e}")
+                
+                def cancel_settings():
                     root.destroy()
-                except Exception as e:
-                    messagebox.showerror("Error", f"Failed to save settings: {e}")
+                
+                save_button = tk.Button(button_frame, text="Save", command=save_settings, 
+                                      bg='#4CAF50', fg='white', padx=20)
+                save_button.pack(side='left', padx=10)
+                
+                cancel_button = tk.Button(button_frame, text="Cancel", command=cancel_settings, padx=20)
+                cancel_button.pack(side='left', padx=10)
+                
+                # Handle window close event
+                root.protocol("WM_DELETE_WINDOW", cancel_settings)
+                
+                # Start the GUI event loop
+                root.mainloop()
             
-            def cancel_settings():
-                settings_window.destroy()
-                root.destroy()
-            
-            save_button = tk.Button(button_frame, text="Save", command=save_settings, 
-                                  bg='#4CAF50', fg='white', padx=20)
-            save_button.pack(side='left', padx=10)
-            
-            cancel_button = tk.Button(button_frame, text="Cancel", command=cancel_settings, padx=20)
-            cancel_button.pack(side='left', padx=10)
-            
-            # Make sure the window is visible
-            settings_window.deiconify()
-            settings_window.focus_force()
+            # Run settings window in a separate thread
+            settings_thread = threading.Thread(target=create_settings_window, daemon=True)
+            settings_thread.start()
             
         except Exception as e:
             logger.error(f"Error opening settings: {e}")
-            try:
-                root = tk.Tk()
-                root.withdraw()
-                messagebox.showerror("Error", f"Failed to open settings: {e}")
-                root.destroy()
-            except:
-                pass
+            self._show_message_dialog("Error", f"Failed to open settings: {e}", is_error=True)
     
     def reset_data_confirm(self, parent_window):
         """Confirm data reset with user."""
+        # Make sure parent window is on top for the dialog
+        parent_window.attributes('-topmost', True)
+        parent_window.lift()
+        
         result = messagebox.askyesno("Confirm Reset", 
                                    "Are you sure you want to reset all data?\n\nThis will permanently delete:\n• All activity history\n• All application sessions\n• All daily summaries\n\nThis action cannot be undone!",
-                                   icon="warning")
+                                   icon="warning",
+                                   parent=parent_window)
         if result:
             try:
                 db.reset_all_data()
-                messagebox.showinfo("Success", "All data has been reset successfully!")
+                messagebox.showinfo("Success", "All data has been reset successfully!", parent=parent_window)
                 
                 # Reset current session data
                 self.current_session_time = 0
@@ -360,7 +354,7 @@ class SystemTrayApp:
                     
             except Exception as e:
                 logger.error(f"Error resetting data: {e}")
-                messagebox.showerror("Error", f"Failed to reset data: {e}")
+                messagebox.showerror("Error", f"Failed to reset data: {e}", parent=parent_window)
     
     def show_about(self, icon, item):
         """Show about dialog with developer information."""
@@ -382,18 +376,30 @@ Data Location: {config.db_file}
 All data stays on your local machine - no cloud sync or external servers."""
         
         # Show message box with developer info
-        try:
-            root = tk.Tk()
-            root.withdraw()  # Hide the main window
-            root.attributes('-topmost', True)  # Keep dialog on top
-            messagebox.showinfo("About Local Activity Watcher", about_text)
-        except Exception as e:
-            logger.error(f"Error showing about dialog: {e}")
-        finally:
+        self._show_message_dialog("About Local Activity Watcher", about_text)
+    
+    def _show_message_dialog(self, title, message, is_error=False):
+        """Show a message dialog with proper window management."""
+        def show_dialog():
             try:
+                root = tk.Tk()
+                root.withdraw()  # Hide the main window
+                root.attributes('-topmost', True)  # Keep dialog on top
+                root.lift()  # Bring to front
+                root.focus_force()
+                
+                if is_error:
+                    messagebox.showerror(title, message)
+                else:
+                    messagebox.showinfo(title, message)
+                    
                 root.destroy()
-            except:
-                pass
+            except Exception as e:
+                logger.error(f"Error showing message dialog: {e}")
+        
+        # Run dialog in a separate thread to avoid blocking
+        dialog_thread = threading.Thread(target=show_dialog, daemon=True)
+        dialog_thread.start()
     
     def start_web_server(self):
         """Start the web server for the dashboard."""

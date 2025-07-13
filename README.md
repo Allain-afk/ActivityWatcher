@@ -1,6 +1,6 @@
 # Local Activity Watcher
 
-A privacy-focused Python desktop application that tracks screen time usage across applications locally. All data stays on your machine.
+A privacy-focused Python desktop application that tracks screen time usage across applications locally. All data stays on your machine. This application is made solely because the developer is bored. You can use this app for free. You can also contribute to this project, just fork this one. >_<
 
 ## Features
 

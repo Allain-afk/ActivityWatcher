@@ -222,7 +222,10 @@ class ActivityTracker:
         self.session_start_time = None
         
         # Import database here to avoid circular imports
-        from database import db
+        try:
+            from .database import db
+        except ImportError:
+            from database import db
         self.db = db
     
     def _get_platform_tracker(self) -> WindowTracker:

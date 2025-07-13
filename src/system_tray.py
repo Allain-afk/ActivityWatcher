@@ -408,7 +408,10 @@ All data stays on your local machine - no cloud sync or external servers."""
         
         try:
             def run_server():
-                from web_dashboard import create_app
+                try:
+                    from .web_dashboard import create_app
+                except ImportError:
+                    from web_dashboard import create_app
                 app = create_app()
                 app.run(host='127.0.0.1', port=5000, debug=False, use_reloader=False)
             

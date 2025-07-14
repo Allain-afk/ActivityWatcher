@@ -223,7 +223,7 @@ class ActivityTracker:
         
         # Import database here to avoid circular imports
         try:
-            from .database import db
+            from database import db
         except ImportError:
             from database import db
         self.db = db

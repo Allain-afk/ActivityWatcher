@@ -2,8 +2,8 @@ from flask import Flask, render_template, jsonify, request, send_from_directory
 from flask_cors import CORS
 import json
 from datetime import datetime, timedelta
-from .config import config
-from .database import db
+from config import config
+from database import db
 import os
 
 def create_app():

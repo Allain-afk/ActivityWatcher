@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
-from .config import config
+from config import config
 
 class ActivityDatabase:
     """Database manager for activity tracking."""

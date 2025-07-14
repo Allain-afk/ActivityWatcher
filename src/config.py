@@ -24,7 +24,7 @@ class Config:
             "tracking_interval": 5,  # seconds
             "window_title_tracking": True,
             "app_tracking": True,
-            "auto_start": True,
+            "auto_start": False,
             "web_port": 5000,
             "dark_mode": False,
             "tracking_enabled": True

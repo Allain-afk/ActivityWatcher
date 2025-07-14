@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 import json
-from .database import db
+from database import db
 
 class ReportGenerator:
     """Generate various reports from activity data."""

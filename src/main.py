@@ -12,25 +12,32 @@ import logging
 import argparse
 from pathlib import Path
 
-# Add the current directory to the Python path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add the src directory to the Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, current_dir)
 
+# Import modules with fallback handling
 try:
-    # Try relative imports first (when used as a package)
-    from .config import config
-    from .database import db
-    from .window_tracker import activity_tracker
-    from .system_tray import SystemTrayApp
-    from .web_dashboard import create_app
-    from .reports import report_generator
-except ImportError:
-    # Fall back to absolute imports (when run directly)
+    # Try direct imports (when run from src directory or through run.py)
     from config import config
     from database import db
     from window_tracker import activity_tracker
     from system_tray import SystemTrayApp
     from web_dashboard import create_app
     from reports import report_generator
+except ImportError as e:
+    # If that fails, try relative imports
+    try:
+        from .config import config
+        from .database import db
+        from .window_tracker import activity_tracker
+        from .system_tray import SystemTrayApp
+        from .web_dashboard import create_app
+        from .reports import report_generator
+    except ImportError:
+        print(f"Failed to import modules: {e}")
+        print("Make sure you're running from the correct directory or use run.py")
+        sys.exit(1)
 
 def setup_logging():
     """Setup application logging."""

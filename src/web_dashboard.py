@@ -206,6 +206,41 @@ def create_app():
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
+    @app.route('/api/session/current')
+    def get_current_session():
+        """Get current session information."""
+        try:
+            from window_tracker import activity_tracker
+            session_stats = activity_tracker.get_session_stats()
+            return jsonify(session_stats)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/session/focus')
+    def get_focus_sessions():
+        """Get recent focus sessions."""
+        try:
+            from window_tracker import activity_tracker
+            days = request.args.get('days', 7, type=int)
+            focus_sessions = activity_tracker.get_focus_sessions(days=days)
+            
+            # Convert datetime objects to strings for JSON serialization
+            serialized_sessions = []
+            for session in focus_sessions:
+                serialized_sessions.append({
+                    'start_time': session['start_time'].isoformat(),
+                    'end_time': session['end_time'].isoformat(),
+                    'duration': session['duration'],
+                    'app_name': session['app_name'],
+                    'window_title': session['window_title'],
+                    'activity_count': session['activity_count'],
+                    'idle_time': session['idle_time']
+                })
+            
+            return jsonify(serialized_sessions)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
     # Create templates directory and HTML templates
     create_templates()
     
@@ -379,6 +414,27 @@ def create_templates():
             text-align: center;
             padding: 20px;
         }
+        
+        .session-stats {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ecf0f1;
+        }
+        
+        .intensity-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .intensity-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e74c3c 0%, #f39c12 50%, #27ae60 100%);
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -400,8 +456,24 @@ def create_templates():
             </div>
             
             <div class="card">
+                <h2>Current Session</h2>
+                <div id="current-session">Loading...</div>
+                <div class="session-stats" id="session-stats"></div>
+            </div>
+            
+            <div class="card">
+                <h2>Productivity Metrics</h2>
+                <div id="productivity-metrics">Loading...</div>
+            </div>
+            
+            <div class="card">
                 <h2>Top Applications (7 days)</h2>
                 <div id="top-apps">Loading...</div>
+            </div>
+            
+            <div class="card">
+                <h2>Activity Intensity</h2>
+                <div id="activity-intensity">Loading...</div>
             </div>
             
             <div class="card">
@@ -533,6 +605,111 @@ def create_templates():
                 });
         }
         
+        function loadCurrentSession() {
+            fetch('/api/session/current')
+                .then(response => response.json())
+                .then(data => {
+                    const sessionDiv = document.getElementById('current-session');
+                    const statsDiv = document.getElementById('session-stats');
+                    
+                    if (data && data.app_name) {
+                        sessionDiv.innerHTML = `
+                            <div class="stat-item">
+                                <span>Application</span>
+                                <span class="stat-value">${data.app_name}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>Duration</span>
+                                <span class="stat-value">${formatTime(data.duration)}</span>
+                            </div>
+                        `;
+                        
+                        statsDiv.innerHTML = `
+                            <div class="stat-item">
+                                <span>Activity Count</span>
+                                <span class="stat-value">${data.activity_count}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>Focus Session</span>
+                                <span class="stat-value">${data.is_focus_session ? 'Yes' : 'No'}</span>
+                            </div>
+                        `;
+                    } else {
+                        sessionDiv.innerHTML = '<div class="loading">No active session</div>';
+                        statsDiv.innerHTML = '';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading current session:', error);
+                });
+        }
+        
+        function loadProductivityMetrics() {
+            fetch('/api/enhanced/stats?days=7')
+                .then(response => response.json())
+                .then(data => {
+                    const metricsDiv = document.getElementById('productivity-metrics');
+                    
+                    if (data.productivity_stats) {
+                        const stats = data.productivity_stats;
+                        const activeTime = stats.active_time || 0;
+                        const idleTime = stats.idle_time || 0;
+                        const totalTime = activeTime + idleTime;
+                        const idlePercentage = totalTime > 0 ? (idleTime / totalTime * 100).toFixed(1) : 0;
+                        
+                        metricsDiv.innerHTML = `
+                            <div class="stat-item">
+                                <span>Productivity Score</span>
+                                <span class="stat-value">${(stats.avg_productivity * 100).toFixed(0)}%</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>Activity Intensity</span>
+                                <span class="stat-value">${(stats.avg_intensity * 100).toFixed(0)}%</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>Active Time</span>
+                                <span class="stat-value">${formatTime(activeTime)}</span>
+                            </div>
+                            <div class="stat-item">
+                                <span>Idle Time</span>
+                                <span class="stat-value">${idlePercentage}%</span>
+                            </div>
+                        `;
+                    } else {
+                        metricsDiv.innerHTML = '<div class="loading">No productivity data</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading productivity metrics:', error);
+                });
+        }
+        
+        function loadActivityIntensity() {
+            fetch('/api/enhanced/activity-intensity')
+                .then(response => response.json())
+                .then(data => {
+                    const intensityDiv = document.getElementById('activity-intensity');
+                    
+                    const intensityPercent = (data.intensity * 100).toFixed(0);
+                    const statusText = data.is_idle ? 'Idle' : 'Active';
+                    const statusColor = data.is_idle ? '#e74c3c' : '#27ae60';
+                    
+                    intensityDiv.innerHTML = `
+                        <div class="stat-item">
+                            <span>Current Intensity</span>
+                            <span class="stat-value">${intensityPercent}%</span>
+                        </div>
+                        <div class="stat-item">
+                            <span>Status</span>
+                            <span class="stat-value" style="color: ${statusColor};">${statusText}</span>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error loading activity intensity:', error);
+                });
+        }
+        
         function toggleTracking() {
             fetch('/api/tracking/toggle', { method: 'POST' })
                 .then(response => response.json())
@@ -553,7 +730,10 @@ def create_templates():
         function refreshData() {
             updateStatus();
             loadTodayStats();
+            loadCurrentSession();
+            loadProductivityMetrics();
             loadTopApps();
+            loadActivityIntensity();
             loadWeeklyStats();
         }
         

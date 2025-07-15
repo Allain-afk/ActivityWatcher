@@ -129,6 +129,11 @@ class ActivityDatabase:
                 WHERE id = ?
             ''', (datetime.now(), datetime.now(), session_id))
     
+    def _delete_session(self, session_id: int):
+        """Delete a session (used for very short sessions)."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('DELETE FROM app_sessions WHERE id = ?', (session_id,))
+    
     def get_app_stats(self, days: int = 7) -> List[Dict]:
         """Get application usage statistics for the last N days."""
         start_date = datetime.now() - timedelta(days=days)

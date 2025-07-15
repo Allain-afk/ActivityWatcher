@@ -3,7 +3,7 @@ import time
 import platform
 import logging
 from typing import Dict, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, timedelta
 from threading import Thread, Event
 from abc import ABC, abstractmethod
 
@@ -220,6 +220,8 @@ class ActivityTracker:
         self.stop_event = Event()
         self.thread = None
         self.session_start_time = None
+        self.session_data = {}  # Store session-specific data
+        self.focus_sessions = []  # Track focused work sessions
         
         # Import database here to avoid circular imports
         try:
@@ -231,6 +233,11 @@ class ActivityTracker:
         
         self.db = db
         self.enhanced_tracker = enhanced_activity_tracker
+        
+        # Session management settings
+        self.min_session_duration = 30  # Minimum session duration in seconds
+        self.focus_threshold = 300  # 5 minutes minimum for focus session
+        self.idle_session_threshold = 180  # 3 minutes idle before ending session
     
     def _get_platform_tracker(self) -> WindowTracker:
         """Get the appropriate tracker for the current platform."""
@@ -308,22 +315,128 @@ class ActivityTracker:
                 app_name, window_title = current_window
                 self.enhanced_tracker.record_enhanced_activity(app_name, window_title, 0)
             
+            # Check for idle state and handle session management
+            if self.enhanced_tracker:
+                is_idle = self.enhanced_tracker.is_user_idle()
+                self._handle_idle_state(is_idle)
+            
             if current_window != self.last_window_info:
-                # Window changed - end current session and start new one
-                if self.current_session:
-                    self.db.end_session(self.current_session)
-                
-                if current_window:
-                    app_name, window_title = current_window
-                    self.current_session = self.db.start_session(app_name, window_title)
-                    logger.debug(f"New session started: {app_name} - {window_title}")
-                else:
-                    self.current_session = None
-                
+                self._handle_window_change(current_window)
                 self.last_window_info = current_window
         
         except Exception as e:
             logger.error(f"Error checking window change: {e}")
+    
+    def _handle_window_change(self, current_window):
+        """Handle window change with improved session management."""
+        try:
+            # End current session if it exists
+            if self.current_session and self.session_start_time:
+                session_duration = (datetime.now() - self.session_start_time).total_seconds()
+                
+                # Only record sessions that meet minimum duration
+                if session_duration >= self.min_session_duration:
+                    self.db.end_session(self.current_session)
+                    
+                    # Check if this was a focus session
+                    if session_duration >= self.focus_threshold:
+                        self._record_focus_session(session_duration)
+                else:
+                    # Delete short sessions
+                    self.db._delete_session(self.current_session)
+                
+                self.current_session = None
+                self.session_start_time = None
+                self.session_data = {}
+            
+            # Start new session if we have a current window
+            if current_window:
+                app_name, window_title = current_window
+                self.current_session = self.db.start_session(app_name, window_title)
+                self.session_start_time = datetime.now()
+                
+                # Initialize session data
+                self.session_data = {
+                    'app_name': app_name,
+                    'window_title': window_title,
+                    'start_time': self.session_start_time,
+                    'activity_count': 0,
+                    'idle_time': 0
+                }
+                
+                logger.debug(f"New session started: {app_name} - {window_title}")
+        
+        except Exception as e:
+            logger.error(f"Error handling window change: {e}")
+    
+    def _handle_idle_state(self, is_idle):
+        """Handle idle state changes."""
+        if not self.session_data:
+            return
+            
+        if is_idle:
+            # Track idle time in current session
+            self.session_data['idle_time'] = self.session_data.get('idle_time', 0) + 1
+            
+            # If idle for too long, end the session
+            if self.session_data['idle_time'] > self.idle_session_threshold:
+                logger.debug("Ending session due to prolonged idle time")
+                self._end_current_session_due_to_idle()
+        else:
+            # Reset idle counter when user becomes active
+            self.session_data['idle_time'] = 0
+            self.session_data['activity_count'] = self.session_data.get('activity_count', 0) + 1
+    
+    def _end_current_session_due_to_idle(self):
+        """End current session due to idle time."""
+        if self.current_session:
+            self.db.end_session(self.current_session)
+            self.current_session = None
+            self.session_start_time = None
+            self.session_data = {}
+    
+    def _record_focus_session(self, duration):
+        """Record a focus session for productivity tracking."""
+        if not self.session_data:
+            return
+            
+        focus_session = {
+            'start_time': self.session_data['start_time'],
+            'end_time': datetime.now(),
+            'duration': duration,
+            'app_name': self.session_data['app_name'],
+            'window_title': self.session_data['window_title'],
+            'activity_count': self.session_data.get('activity_count', 0),
+            'idle_time': self.session_data.get('idle_time', 0)
+        }
+        
+        self.focus_sessions.append(focus_session)
+        logger.info(f"Focus session recorded: {duration:.0f}s in {focus_session['app_name']}")
+    
+    def get_focus_sessions(self, days=7):
+        """Get recent focus sessions."""
+        cutoff_date = datetime.now() - timedelta(days=days)
+        return [session for session in self.focus_sessions 
+                if session['start_time'] >= cutoff_date]
+    
+    def get_session_stats(self):
+        """Get current session statistics."""
+        if not self.current_session or not self.session_start_time:
+            return None
+            
+        current_time = datetime.now()
+        session_duration = (current_time - self.session_start_time).total_seconds()
+        
+        stats = {
+            'app_name': self.session_data.get('app_name', 'Unknown'),
+            'window_title': self.session_data.get('window_title', 'Unknown'),
+            'duration': session_duration,
+            'activity_count': self.session_data.get('activity_count', 0),
+            'idle_time': self.session_data.get('idle_time', 0),
+            'is_focus_session': session_duration >= self.focus_threshold
+        }
+        
+        return stats
     
     def get_current_window(self) -> Optional[Tuple[str, str]]:
         """Get current active window information."""

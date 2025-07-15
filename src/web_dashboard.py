@@ -162,6 +162,50 @@ def create_app():
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
+    @app.route('/api/enhanced/stats')
+    def get_enhanced_stats():
+        """Get enhanced statistics including productivity and activity patterns."""
+        try:
+            days = request.args.get('days', 7, type=int)
+            stats = db.get_enhanced_stats(days=days)
+            return jsonify(stats)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/enhanced/browser-activity')
+    def get_browser_activity():
+        """Get browser activity with URLs."""
+        try:
+            days = request.args.get('days', 7, type=int)
+            activity = db.get_browser_activity(days=days)
+            return jsonify(activity)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/enhanced/productivity-trends')
+    def get_productivity_trends():
+        """Get productivity trends over time."""
+        try:
+            days = request.args.get('days', 30, type=int)
+            trends = db.get_productivity_trends(days=days)
+            return jsonify(trends)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    @app.route('/api/enhanced/activity-intensity')
+    def get_activity_intensity():
+        """Get current activity intensity."""
+        try:
+            from activity_monitor import enhanced_activity_tracker
+            intensity = enhanced_activity_tracker.get_activity_intensity()
+            is_idle = enhanced_activity_tracker.is_user_idle()
+            return jsonify({
+                'intensity': intensity,
+                'is_idle': is_idle
+            })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
     # Create templates directory and HTML templates
     create_templates()
     

@@ -224,9 +224,13 @@ class ActivityTracker:
         # Import database here to avoid circular imports
         try:
             from database import db
+            from activity_monitor import enhanced_activity_tracker
         except ImportError:
             from database import db
+            from activity_monitor import enhanced_activity_tracker
+        
         self.db = db
+        self.enhanced_tracker = enhanced_activity_tracker
     
     def _get_platform_tracker(self) -> WindowTracker:
         """Get the appropriate tracker for the current platform."""
@@ -298,6 +302,11 @@ class ActivityTracker:
         """Check if the active window has changed."""
         try:
             current_window = self.tracker.get_active_window()
+            
+            # Always record enhanced activity data for current window
+            if current_window and self.enhanced_tracker:
+                app_name, window_title = current_window
+                self.enhanced_tracker.record_enhanced_activity(app_name, window_title, 0)
             
             if current_window != self.last_window_info:
                 # Window changed - end current session and start new one

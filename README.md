@@ -15,7 +15,7 @@ pip install -r requirements.txt
 python run.py
 ```
 
-**Features**: System tray operation • Web dashboard • Cross-platform • Privacy-first • Real-time statistics
+**Features**: System tray operation • Web dashboard • Cross-platform • Privacy-first • Real-time statistics • **Enhanced productivity tracking** • **Activity categorization** • **Idle time detection** • **Focus session monitoring**
 
 ## 📁 Structure
 
@@ -45,7 +45,11 @@ Settings: `~/.local_activity_watcher/config.json`
   "window_title_tracking": true,
   "app_tracking": true,
   "web_port": 5000,
-  "tracking_enabled": true
+  "tracking_enabled": true,
+  "enhanced_tracking": true,
+  "idle_threshold": 60,
+  "browser_url_tracking": true,
+  "productivity_tracking": true
 }
 ```
 
@@ -84,6 +88,8 @@ Creates: `dist/LocalActivityWatcher.exe`, installer/uninstaller scripts
 ```bash
 python -m pytest tests/          # Run all tests
 python -m pytest tests/test_api.py  # Specific test
+python run.py enhanced --days 7  # Enhanced productivity stats
+python run.py enhanced --show-browser --show-trends  # Detailed analytics
 ```
 
 ## 🔄 Auto-Start
@@ -105,7 +111,7 @@ python run.py --debug
 
 ## 📚 API Endpoints
 
-`/` - Dashboard • `/api/stats/today` - Stats • `/api/tracking/toggle` - Control • `/api/config` - Settings
+`/` - Dashboard • `/api/stats/today` - Stats • `/api/tracking/toggle` - Control • `/api/config` - Settings • `/api/enhanced/stats` - Productivity metrics • `/api/session/current` - Current session • `/api/enhanced/browser-activity` - Browser tracking
 
 ## 🐛 Troubleshooting
 

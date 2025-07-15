@@ -27,7 +27,13 @@ class Config:
             "auto_start": False,
             "web_port": 5000,
             "dark_mode": False,
-            "tracking_enabled": True
+            "tracking_enabled": True,
+            "enhanced_tracking": True,  # Enable enhanced activity tracking
+            "idle_threshold": 60,  # seconds before considering user idle
+            "activity_sampling_rate": 5,  # how often to sample activity data
+            "browser_url_tracking": True,  # Track URLs in browser windows
+            "productivity_tracking": True,  # Track productivity metrics
+            "resource_monitoring": True  # Monitor CPU/memory usage
         }
         
         # Load or create config

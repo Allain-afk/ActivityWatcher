@@ -22,18 +22,34 @@ try:
     from config import config
     from database import db
     from window_tracker import activity_tracker
-    from system_tray import SystemTrayApp
     from web_dashboard import create_app
     from reports import report_generator
+    
+    # Try to import system tray, but don't fail if display is not available
+    try:
+        from system_tray import SystemTrayApp
+        SYSTEM_TRAY_AVAILABLE = True
+    except Exception as e:
+        SystemTrayApp = None
+        SYSTEM_TRAY_AVAILABLE = False
+        print(f"System tray not available: {e}")
+        
 except ImportError as e:
     # If that fails, try relative imports
     try:
         from .config import config
         from .database import db
         from .window_tracker import activity_tracker
-        from .system_tray import SystemTrayApp
         from .web_dashboard import create_app
         from .reports import report_generator
+        
+        try:
+            from .system_tray import SystemTrayApp
+            SYSTEM_TRAY_AVAILABLE = True
+        except Exception as e:
+            SystemTrayApp = None
+            SYSTEM_TRAY_AVAILABLE = False
+            print(f"System tray not available: {e}")
     except ImportError:
         print(f"Failed to import modules: {e}")
         print("Make sure you're running from the correct directory or use run.py")
@@ -60,6 +76,9 @@ def check_dependencies():
         import pystray
     except ImportError:
         missing_deps.append('pystray')
+    except Exception as e:
+        # pystray is available but can't initialize (e.g., no display)
+        print(f"Warning: pystray available but not functional: {e}")
     
     try:
         import flask
@@ -137,6 +156,35 @@ def run_cli_mode(args):
                 app_hours = app['total_duration'] // 3600
                 app_minutes = (app['total_duration'] % 3600) // 60
                 print(f"{i}. {app['app_name']}: {app_hours}h {app_minutes}m")
+            
+            # Show enhanced stats if available
+            if config.get('enhanced_tracking', True):
+                try:
+                    enhanced_stats = db.get_enhanced_stats(days=1)
+                    productivity_stats = enhanced_stats.get('productivity_stats', {})
+                    
+                    print(f"\nEnhanced Statistics:")
+                    print(f"Average Productivity Score: {productivity_stats.get('avg_productivity', 0):.2f}")
+                    print(f"Average Activity Intensity: {productivity_stats.get('avg_intensity', 0):.2f}")
+                    
+                    active_time = productivity_stats.get('active_time', 0)
+                    idle_time = productivity_stats.get('idle_time', 0)
+                    if active_time > 0 or idle_time > 0:
+                        total_tracked = active_time + idle_time
+                        idle_percentage = (idle_time / total_tracked) * 100 if total_tracked > 0 else 0
+                        print(f"Idle Time: {idle_percentage:.1f}%")
+                    
+                    category_breakdown = enhanced_stats.get('category_breakdown', [])
+                    if category_breakdown:
+                        print(f"\nActivity Categories:")
+                        for cat in category_breakdown[:5]:
+                            cat_hours = cat['total_duration'] // 3600
+                            cat_minutes = (cat['total_duration'] % 3600) // 60
+                            print(f"  {cat['category']}: {cat_hours}h {cat_minutes}m")
+                    
+                except Exception as e:
+                    logger.debug(f"Enhanced stats not available: {e}")
+                    
         except Exception as e:
             logger.error(f"Error showing stats: {e}")
             print(f"Error: {e}")
@@ -149,6 +197,69 @@ def run_cli_mode(args):
             print(f"Cleaned up data older than {days_to_keep} days")
         except Exception as e:
             logger.error(f"Error cleaning up data: {e}")
+            print(f"Error: {e}")
+    
+    elif args.command == 'enhanced':
+        logger.info("Showing enhanced statistics...")
+        try:
+            days = args.days or 7
+            enhanced_stats = db.get_enhanced_stats(days=days)
+            
+            print(f"Enhanced Statistics (Last {days} days)")
+            print("=" * 50)
+            
+            # Productivity stats
+            productivity_stats = enhanced_stats.get('productivity_stats', {})
+            print(f"Average Productivity Score: {productivity_stats.get('avg_productivity', 0):.2f}")
+            print(f"Average Activity Intensity: {productivity_stats.get('avg_intensity', 0):.2f}")
+            
+            active_time = productivity_stats.get('active_time', 0)
+            idle_time = productivity_stats.get('idle_time', 0)
+            if active_time > 0 or idle_time > 0:
+                total_tracked = active_time + idle_time
+                idle_percentage = (idle_time / total_tracked) * 100 if total_tracked > 0 else 0
+                active_hours = active_time // 3600
+                active_minutes = (active_time % 3600) // 60
+                print(f"Active Time: {active_hours}h {active_minutes}m")
+                print(f"Idle Time: {idle_percentage:.1f}%")
+            
+            # Category breakdown
+            category_breakdown = enhanced_stats.get('category_breakdown', [])
+            if category_breakdown:
+                print(f"\nActivity Categories:")
+                for cat in category_breakdown:
+                    cat_hours = cat['total_duration'] // 3600
+                    cat_minutes = (cat['total_duration'] % 3600) // 60
+                    print(f"  {cat['category']:15}: {cat_hours}h {cat_minutes}m (avg productivity: {cat['avg_productivity']:.2f})")
+            
+            # Resource usage
+            resource_usage = enhanced_stats.get('resource_usage', [])
+            if resource_usage:
+                print(f"\nTop Resource Usage:")
+                for res in resource_usage[:5]:
+                    res_hours = res['total_duration'] // 3600
+                    res_minutes = (res['total_duration'] % 3600) // 60
+                    print(f"  {res['app_name']:15}: {res_hours}h {res_minutes}m (CPU: {res['avg_cpu']:.1f}%, RAM: {res['avg_memory']:.1f}%)")
+            
+            # Browser activity
+            if args.show_browser:
+                browser_activity = db.get_browser_activity(days=days)
+                if browser_activity:
+                    print(f"\nBrowser Activity:")
+                    for activity in browser_activity[:10]:
+                        duration_minutes = activity['duration'] // 60
+                        print(f"  {activity['url'][:50]}... ({duration_minutes}m)")
+            
+            # Productivity trends
+            if args.show_trends:
+                trends = db.get_productivity_trends(days=days)
+                if trends:
+                    print(f"\nProductivity Trends:")
+                    for trend in trends:
+                        print(f"  {trend['date']}: {trend['productivity']:.2f} (intensity: {trend['intensity']:.2f})")
+            
+        except Exception as e:
+            logger.error(f"Error showing enhanced stats: {e}")
             print(f"Error: {e}")
     
     elif args.command == 'web':
@@ -185,6 +296,12 @@ def main():
     
     # Stats command
     stats_parser = subparsers.add_parser('stats', help='Show quick statistics')
+    
+    # Enhanced stats command
+    enhanced_parser = subparsers.add_parser('enhanced', help='Show enhanced statistics and productivity metrics')
+    enhanced_parser.add_argument('--days', type=int, default=7, help='Number of days to analyze')
+    enhanced_parser.add_argument('--show-browser', action='store_true', help='Show browser activity')
+    enhanced_parser.add_argument('--show-trends', action='store_true', help='Show productivity trends')
     
     # Cleanup command
     cleanup_parser = subparsers.add_parser('cleanup', help='Clean up old data')
@@ -247,13 +364,27 @@ def main():
             logger.info("Shutting down...")
             activity_tracker.stop_tracking()
     else:
-        logger.info("Starting system tray application")
-        try:
-            app = SystemTrayApp()
-            app.run()
-        except Exception as e:
-            logger.error(f"System tray application error: {e}")
-            sys.exit(1)
+        if SYSTEM_TRAY_AVAILABLE:
+            logger.info("Starting system tray application")
+            try:
+                app = SystemTrayApp()
+                app.run()
+            except Exception as e:
+                logger.error(f"System tray application error: {e}")
+                sys.exit(1)
+        else:
+            logger.warning("System tray not available, running tracking only")
+            try:
+                activity_tracker.start_tracking(config.get('tracking_interval', 5))
+                logger.info("Activity tracking started")
+                
+                # Keep the application running
+                import time
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                logger.info("Shutting down...")
+                activity_tracker.stop_tracking()
 
 if __name__ == "__main__":
     main() 

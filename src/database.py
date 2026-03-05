@@ -48,11 +48,35 @@ class ActivityDatabase:
                 )
             ''')
             
+            # Enhanced activity tracking table
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS enhanced_activities (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp DATETIME NOT NULL,
+                    app_name TEXT NOT NULL,
+                    window_title TEXT,
+                    duration INTEGER DEFAULT 0,
+                    url TEXT,
+                    file_path TEXT,
+                    category TEXT,
+                    productivity_score REAL,
+                    activity_intensity REAL,
+                    is_idle BOOLEAN DEFAULT 0,
+                    cpu_percent REAL,
+                    memory_percent REAL,
+                    idle_time REAL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
             # Create indexes for better performance
             conn.execute('CREATE INDEX IF NOT EXISTS idx_activities_timestamp ON activities(timestamp)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_activities_app_name ON activities(app_name)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_sessions_start_time ON app_sessions(start_time)')
             conn.execute('CREATE INDEX IF NOT EXISTS idx_sessions_app_name ON app_sessions(app_name)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_enhanced_timestamp ON enhanced_activities(timestamp)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_enhanced_app_name ON enhanced_activities(app_name)')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_enhanced_category ON enhanced_activities(category)')
     
     def record_activity(self, app_name: str, window_title: str = None, duration: int = 0):
         """Record a single activity entry."""
@@ -61,6 +85,31 @@ class ActivityDatabase:
                 INSERT INTO activities (timestamp, app_name, window_title, duration)
                 VALUES (?, ?, ?, ?)
             ''', (datetime.now(), app_name, window_title, duration))
+    
+    def record_enhanced_activity(self, activity_data: Dict):
+        """Record enhanced activity data with additional context."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('''
+                INSERT INTO enhanced_activities (
+                    timestamp, app_name, window_title, duration, url, file_path,
+                    category, productivity_score, activity_intensity, is_idle,
+                    cpu_percent, memory_percent, idle_time
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                activity_data['timestamp'],
+                activity_data['app_name'],
+                activity_data['window_title'],
+                activity_data['duration'],
+                activity_data.get('url'),
+                activity_data.get('file_path'),
+                activity_data.get('category'),
+                activity_data.get('productivity_score'),
+                activity_data.get('activity_intensity'),
+                activity_data.get('is_idle'),
+                activity_data.get('cpu_percent'),
+                activity_data.get('memory_percent'),
+                activity_data.get('idle_time')
+            ))
     
     def start_session(self, app_name: str, window_title: str = None) -> int:
         """Start a new session and return session ID."""
@@ -79,6 +128,11 @@ class ActivityDatabase:
                 SET end_time = ?, duration = CAST((julianday(?) - julianday(start_time)) * 86400 AS INTEGER)
                 WHERE id = ?
             ''', (datetime.now(), datetime.now(), session_id))
+    
+    def _delete_session(self, session_id: int):
+        """Delete a session (used for very short sessions)."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('DELETE FROM app_sessions WHERE id = ?', (session_id,))
     
     def get_app_stats(self, days: int = 7) -> List[Dict]:
         """Get application usage statistics for the last N days."""
@@ -232,6 +286,118 @@ class ActivityDatabase:
                 })
             
             return {'sessions': sessions}
+    
+    def get_enhanced_stats(self, days: int = 7) -> Dict:
+        """Get enhanced statistics including productivity and activity patterns."""
+        start_date = datetime.now() - timedelta(days=days)
+        
+        with sqlite3.connect(self.db_path) as conn:
+            # Get productivity stats
+            cursor = conn.execute('''
+                SELECT AVG(productivity_score) as avg_productivity,
+                       AVG(activity_intensity) as avg_intensity,
+                       SUM(CASE WHEN is_idle = 0 THEN duration ELSE 0 END) as active_time,
+                       SUM(CASE WHEN is_idle = 1 THEN duration ELSE 0 END) as idle_time
+                FROM enhanced_activities 
+                WHERE timestamp >= ?
+            ''', (start_date,))
+            
+            productivity_data = cursor.fetchone()
+            
+            # Get category breakdown
+            cursor = conn.execute('''
+                SELECT category, 
+                       SUM(duration) as total_duration,
+                       AVG(productivity_score) as avg_productivity,
+                       COUNT(*) as activity_count
+                FROM enhanced_activities 
+                WHERE timestamp >= ? AND category IS NOT NULL
+                GROUP BY category
+                ORDER BY total_duration DESC
+            ''', (start_date,))
+            
+            category_breakdown = []
+            for row in cursor.fetchall():
+                category_breakdown.append({
+                    'category': row[0],
+                    'total_duration': row[1],
+                    'avg_productivity': row[2],
+                    'activity_count': row[3]
+                })
+            
+            # Get system resource usage patterns
+            cursor = conn.execute('''
+                SELECT app_name,
+                       AVG(cpu_percent) as avg_cpu,
+                       AVG(memory_percent) as avg_memory,
+                       SUM(duration) as total_duration
+                FROM enhanced_activities 
+                WHERE timestamp >= ? AND cpu_percent IS NOT NULL
+                GROUP BY app_name
+                ORDER BY total_duration DESC
+                LIMIT 10
+            ''', (start_date,))
+            
+            resource_usage = []
+            for row in cursor.fetchall():
+                resource_usage.append({
+                    'app_name': row[0],
+                    'avg_cpu': row[1],
+                    'avg_memory': row[2],
+                    'total_duration': row[3]
+                })
+            
+            return {
+                'productivity_stats': {
+                    'avg_productivity': productivity_data[0] or 0,
+                    'avg_intensity': productivity_data[1] or 0,
+                    'active_time': productivity_data[2] or 0,
+                    'idle_time': productivity_data[3] or 0
+                },
+                'category_breakdown': category_breakdown,
+                'resource_usage': resource_usage
+            }
+    
+    def get_browser_activity(self, days: int = 7) -> List[Dict]:
+        """Get browser activity with URLs."""
+        start_date = datetime.now() - timedelta(days=days)
+        
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                SELECT url, window_title, 
+                       SUM(duration) as total_duration,
+                       COUNT(*) as visit_count,
+                       AVG(activity_intensity) as avg_intensity
+                FROM enhanced_activities 
+                WHERE timestamp >= ? AND url IS NOT NULL
+                GROUP BY url
+                ORDER BY total_duration DESC
+                LIMIT 20
+            ''', (start_date,))
+            
+            return [{'url': row[0], 'title': row[1], 'duration': row[2], 
+                    'visits': row[3], 'intensity': row[4]} for row in cursor.fetchall()]
+    
+    def get_productivity_trends(self, days: int = 30) -> List[Dict]:
+        """Get productivity trends over time."""
+        start_date = datetime.now() - timedelta(days=days)
+        
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute('''
+                SELECT DATE(timestamp) as date,
+                       AVG(productivity_score) as avg_productivity,
+                       AVG(activity_intensity) as avg_intensity,
+                       SUM(duration) as total_duration,
+                       SUM(CASE WHEN is_idle = 0 THEN duration ELSE 0 END) as active_duration
+                FROM enhanced_activities 
+                WHERE timestamp >= ?
+                GROUP BY DATE(timestamp)
+                ORDER BY date
+            ''', (start_date,))
+            
+            return [{'date': row[0], 'productivity': row[1], 'intensity': row[2], 
+                    'total_duration': row[3], 'active_duration': row[4]} 
+                   for row in cursor.fetchall()]
 
 # Global database instance
 db = ActivityDatabase() 
